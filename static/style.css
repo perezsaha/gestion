@@ -1,0 +1,220 @@
+/* ============================================================
+   Gestion des étudiants - Feuille de style
+   ============================================================ */
+
+:root {
+    --encre: #1b2a41;
+    --papier: #f4f6f9;
+    --surface: #ffffff;
+    --bordure: #d3dae4;
+    --accent: #0e6e6e;
+    --accent-fonce: #0a5656;
+    --danger: #b3261e;
+    --danger-fonce: #8f1d17;
+    --succes: #1f7a45;
+    --texte-doux: #5a6778;
+    --rayon: 8px;
+    font-family: "IBM Plex Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    background: var(--papier);
+    color: var(--encre);
+    line-height: 1.5;
+}
+
+/* ---------- En-tête ---------- */
+.entete {
+    padding: 2rem 1.5rem 1rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+.entete h1 { margin: 0; font-size: 1.9rem; letter-spacing: -0.01em; }
+.sous-titre { margin: 0.25rem 0 0; color: var(--texte-doux); }
+
+/* ---------- Messages ---------- */
+.messages {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    min-height: 0;
+}
+.message {
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+    border-radius: var(--rayon);
+    border-left: 5px solid;
+    background: var(--surface);
+    font-weight: 500;
+}
+.message-succes { border-color: var(--succes); color: var(--succes); }
+.message-erreur { border-color: var(--danger); color: var(--danger); }
+
+/* ---------- Mise en page ---------- */
+.mise-en-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0.5rem 1.5rem 2rem;
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.panneau {
+    background: var(--surface);
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon);
+    padding: 1.25rem;
+}
+.panneau h2 { margin: 0 0 1rem; font-size: 1.15rem; }
+.panneau-formulaire { position: sticky; top: 1rem; }
+
+/* ---------- Formulaires ---------- */
+.champ { margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.3rem; }
+.champ label, legend { font-size: 0.9rem; font-weight: 600; }
+
+input[type="text"], select {
+    font: inherit;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--bordure);
+    border-radius: 6px;
+    background: #fff;
+    color: var(--encre);
+}
+input:disabled { background: #eef1f5; color: var(--texte-doux); }
+input:focus-visible, select:focus-visible, button:focus-visible {
+    outline: 3px solid rgba(14, 110, 110, 0.4);
+    outline-offset: 1px;
+}
+.champ-invalide input, .champ-invalide select { border-color: var(--danger); }
+.erreur-champ { color: var(--danger); min-height: 1em; font-size: 0.8rem; }
+
+/* ---------- Boutons ---------- */
+.bouton {
+    font: inherit;
+    font-weight: 600;
+    padding: 0.55rem 1rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.bouton-principal { background: var(--accent); color: #fff; }
+.bouton-principal:hover { background: var(--accent-fonce); }
+.bouton-secondaire { background: #fff; color: var(--encre); border-color: var(--bordure); }
+.bouton-secondaire:hover:not(:disabled) { background: var(--papier); }
+.bouton-danger { background: var(--danger); color: #fff; }
+.bouton-danger:hover { background: var(--danger-fonce); }
+.bouton:disabled { opacity: 0.45; cursor: not-allowed; }
+.bouton-petit { padding: 0.3rem 0.65rem; font-size: 0.85rem; }
+
+.actions-formulaire { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+/* ---------- Barre de la liste ---------- */
+.barre-liste {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+.barre-liste h2 { margin: 0; }
+.compteur {
+    display: inline-block;
+    min-width: 1.6rem;
+    padding: 0 0.5rem;
+    margin-left: 0.4rem;
+    text-align: center;
+    font-size: 0.85rem;
+    background: var(--papier);
+    border: 1px solid var(--bordure);
+    border-radius: 999px;
+}
+.actions-export { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+/* ---------- Tri ---------- */
+.barre-tri {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem 1.5rem;
+    align-items: flex-end;
+    padding: 0.9rem 1rem;
+    margin-bottom: 1rem;
+    background: var(--papier);
+    border-radius: var(--rayon);
+}
+.groupe-radio { border: none; margin: 0; padding: 0; display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+.groupe-radio legend { padding: 0; margin-bottom: 0.3rem; width: 100%; }
+.groupe-radio label { font-weight: 400; font-size: 0.95rem; }
+.champ-compact { margin-bottom: 0; }
+
+/* ---------- Tableau ---------- */
+.conteneur-tableau { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.7rem 0.8rem; border-bottom: 1px solid var(--bordure); }
+th { background: var(--encre); color: #fff; font-weight: 600; font-size: 0.9rem; }
+tbody tr:hover { background: #f0f5f7; }
+td.colonne-actions, th.colonne-actions { text-align: right; white-space: nowrap; }
+.colonne-actions .bouton { margin-left: 0.3rem; }
+.message-vide { text-align: center; color: var(--texte-doux); padding: 2rem 1rem; margin: 0; }
+
+/* ---------- Boîte de confirmation ---------- */
+.dialogue {
+    border: 1px solid var(--bordure);
+    border-radius: var(--rayon);
+    padding: 1.5rem;
+    max-width: 380px;
+    color: var(--encre);
+}
+.dialogue::backdrop { background: rgba(27, 42, 65, 0.45); }
+.dialogue h3 { margin: 0 0 0.5rem; }
+
+/* ---------- Éléments visibles uniquement à l'impression ---------- */
+.entete-impression { display: none; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+    .mise-en-page { grid-template-columns: 1fr; }
+    .panneau-formulaire { position: static; }
+    .entete h1 { font-size: 1.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+}
+
+/* ============================================================
+   IMPRESSION : on ne garde que le titre, la date et le tableau
+   ============================================================ */
+@media print {
+    body { background: #fff; }
+
+    /* Masquer boutons, formulaire, menus, messages, en-tête de la page */
+    .entete,
+    .messages,
+    .panneau-formulaire,
+    .barre-liste,
+    .barre-tri,
+    .dialogue,
+    .colonne-actions,
+    .message-vide { display: none !important; }
+
+    .mise-en-page { display: block; padding: 0; max-width: none; }
+    .panneau { border: none; padding: 0; }
+
+    /* Titre et date d'impression */
+    .entete-impression { display: block; margin-bottom: 1rem; }
+    .entete-impression h1 { margin: 0; font-size: 1.5rem; }
+    .entete-impression p { margin: 0.2rem 0 0; color: #333; }
+
+    table { font-size: 11pt; }
+    th { background: #e5e5e5 !important; color: #000 !important;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    th, td { border: 1px solid #999; }
+    tr { page-break-inside: avoid; }
+}

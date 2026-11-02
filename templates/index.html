@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Gestion des étudiants</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+    <!-- Bibliothèques externes (CDN) : export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+    <header class="entete">
+        <h1>Gestion des étudiants</h1>
+        <p class="sous-titre">Ajoutez, modifiez, triez et exportez la liste.</p>
+    </header>
+
+    <!-- Zone des messages de succès / erreur -->
+    <div id="messages" class="messages" role="status" aria-live="polite"></div>
+
+    <main class="mise-en-page">
+
+        <!-- ================= Formulaire (Create / Update) ================= -->
+        <section class="panneau panneau-formulaire" aria-labelledby="titre-formulaire">
+            <h2 id="titre-formulaire">Ajouter un étudiant</h2>
+
+            <form id="formulaire-etudiant" novalidate>
+                <div class="champ">
+                    <label for="matricule">Matricule</label>
+                    <input type="text" id="matricule" maxlength="20" placeholder="ETU001" autocomplete="off">
+                    <small class="erreur-champ" id="erreur-matricule"></small>
+                </div>
+
+                <div class="champ">
+                    <label for="nom">Nom</label>
+                    <input type="text" id="nom" maxlength="50" autocomplete="off">
+                    <small class="erreur-champ" id="erreur-nom"></small>
+                </div>
+
+                <div class="champ">
+                    <label for="prenom">Prénom</label>
+                    <input type="text" id="prenom" maxlength="50" autocomplete="off">
+                    <small class="erreur-champ" id="erreur-prenom"></small>
+                </div>
+
+                <div class="champ">
+                    <label for="niveau">Niveau</label>
+                    <select id="niveau">
+                        <option value="">Choisir un niveau</option>
+                        <option value="L1">L1</option>
+                        <option value="L2">L2</option>
+                        <option value="L3">L3</option>
+                        <option value="M1">M1</option>
+                        <option value="M2">M2</option>
+                    </select>
+                    <small class="erreur-champ" id="erreur-niveau"></small>
+                </div>
+
+                <div class="actions-formulaire">
+                    <button type="submit" id="bouton-valider" class="bouton bouton-principal">Ajouter l'étudiant</button>
+                    <button type="button" id="bouton-annuler" class="bouton bouton-secondaire" hidden>Annuler</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- ================= Liste (Read) + tri + export ================= -->
+        <section class="panneau panneau-liste" aria-labelledby="titre-liste">
+
+            <!-- Titre et date : visibles uniquement à l'impression -->
+            <div class="entete-impression">
+                <h1>Liste des étudiants</h1>
+                <p id="date-impression"></p>
+            </div>
+
+            <div class="barre-liste">
+                <h2 id="titre-liste">Liste des étudiants <span id="compteur" class="compteur">0</span></h2>
+                <div class="actions-export">
+                    <button type="button" id="bouton-pdf" class="bouton bouton-secondaire" disabled>Télécharger en PDF</button>
+                    <button type="button" id="bouton-imprimer" class="bouton bouton-secondaire" disabled>Imprimer</button>
+                </div>
+            </div>
+
+            <!-- Options de tri -->
+            <div class="barre-tri">
+                <fieldset class="groupe-radio">
+                    <legend>Algorithme</legend>
+                    <label><input type="radio" name="algorithme" value="rapide" checked> Tri rapide</label>
+                    <label><input type="radio" name="algorithme" value="fusion"> Tri fusion</label>
+                </fieldset>
+
+                <div class="champ champ-compact">
+                    <label for="champ-tri">Trier par</label>
+                    <select id="champ-tri">
+                        <option value="matricule">Matricule</option>
+                        <option value="nom">Nom</option>
+                        <option value="prenom">Prénom</option>
+                        <option value="niveau">Niveau</option>
+                    </select>
+                </div>
+
+                <div class="champ champ-compact">
+                    <label for="ordre-tri">Ordre</label>
+                    <select id="ordre-tri">
+                        <option value="asc">Croissant</option>
+                        <option value="desc">Décroissant</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="conteneur-tableau">
+                <table id="tableau-etudiants">
+                    <thead>
+                        <tr>
+                            <th>Matricule</th>
+                            <th>Nom</th>
+                            <th>Prénom</th>
+                            <th>Niveau</th>
+                            <th class="colonne-actions">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="corps-tableau"></tbody>
+                </table>
+                <p id="message-vide" class="message-vide" hidden>Aucun étudiant pour le moment. Remplissez le formulaire pour en ajouter un.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Boîte de confirmation de suppression -->
+    <dialog id="dialogue-suppression" class="dialogue">
+        <form method="dialog">
+            <h3>Supprimer cet étudiant ?</h3>
+            <p id="texte-suppression"></p>
+            <div class="actions-formulaire">
+                <button value="confirmer" class="bouton bouton-danger">Supprimer</button>
+                <button value="annuler" class="bouton bouton-secondaire">Annuler</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
