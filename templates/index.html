@@ -6,9 +6,6 @@
     <title>Gestion des étudiants</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
-    <!-- Bibliothèques externes (CDN) : export PDF -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
 
@@ -68,11 +65,6 @@
         <!-- ================= Liste (Read) + tri + export ================= -->
         <section class="panneau panneau-liste" aria-labelledby="titre-liste">
 
-            <!-- Titre et date : visibles uniquement à l'impression -->
-            <div class="entete-impression">
-                <h1>Liste des étudiants</h1>
-                <p id="date-impression"></p>
-            </div>
 
             <div class="barre-liste">
                 <h2 id="titre-liste">Liste des étudiants <span id="compteur" class="compteur">0</span></h2>
