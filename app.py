@@ -4,16 +4,29 @@ Application de gestion d'étudiants (CRUD) - Backend Flask
 ---------------------------------------------------------
 Contraintes respectées :
   - un seul fichier (app.py)
-  - AUCUNE classe : uniquement des fonctions (def)
+  - AUCUNE classe définie : uniquement des fonctions (def)
   - AUCUN ORM : requêtes SQL directes avec mysql-connector-python
+  - le tri (rapide et fusion), l'export PDF et la page d'impression
+    sont réalisés ici, en Python
 """
 
 # ============================================================
 # 1. IMPORTS
 # ============================================================
-from flask import Flask, render_template, request, jsonify
+import io
+import re
+import unicodedata
+from datetime import datetime
+
+from flask import Flask, render_template, request, jsonify, send_file
 import mysql.connector
 from mysql.connector import Error
+
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import (SimpleDocTemplate, Table, TableStyle,
+                                Paragraph, Spacer)
 
 # ============================================================
 # 2. CONFIGURATION DE LA CONNEXION MYSQL (WampServer)
@@ -22,11 +35,20 @@ MYSQL_HOTE = "localhost"
 MYSQL_PORT = 3306
 MYSQL_UTILISATEUR = "root"
 MYSQL_MOT_DE_PASSE = ""          # vide par défaut sur WampServer
-MYSQL_BASE = "etudiants"
+MYSQL_BASE = "gestion_etudiants"
 
 # Niveaux acceptés et longueurs maximales (identiques à la table SQL)
 NIVEAUX_VALIDES = ["L1", "L2", "L3", "M1", "M2"]
 LONGUEUR_MAX = {"matricule": 20, "nom": 50, "prenom": 50}
+
+# Options de tri acceptées
+ALGORITHMES_VALIDES = ["rapide", "fusion"]
+CHAMPS_TRI_VALIDES = ["matricule", "nom", "prenom", "niveau"]
+ORDRES_VALIDES = ["asc", "desc"]
+
+# Noms des mois en français (pour la date affichée dans le PDF et l'impression)
+MOIS_FR = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet",
+           "août", "septembre", "octobre", "novembre", "décembre"]
 
 app = Flask(__name__)
 
@@ -88,7 +110,7 @@ def reponse_erreur_mysql(erreur):
     if erreur.errno in (2002, 2003, 2006, 2013, 1045, 1049):
         return reponse_erreur(
             "Connexion à MySQL impossible. Vérifiez que WampServer est "
-            "démarré (icône verte) et que la base «etudiants » existe.",
+            "démarré (icône verte) et que la base « gestion_etudiants » existe.",
             503)
     return reponse_erreur("Erreur de base de données : " + str(erreur), 500)
 
@@ -167,7 +189,190 @@ def supprimer_etudiant(matricule):
 
 
 # ============================================================
-# 5. ROUTES FLASK (elles appellent les fonctions ci-dessus)
+# 5. ALGORITHMES DE TRI (écrits from scratch, sans sorted() ni .sort())
+# ============================================================
+def normaliser_texte(texte):
+    """Met un texte en minuscules et sans accents pour comparer équitablement."""
+    decompose = unicodedata.normalize("NFD", str(texte))
+    sans_accents = "".join(c for c in decompose
+                           if unicodedata.category(c) != "Mn")
+    return sans_accents.casefold()
+
+
+def cle_de_tri(etudiant, champ):
+    """
+    Construit la clé de comparaison d'un étudiant pour un champ donné.
+    Les nombres contenus dans le texte sont comparés comme des nombres
+    (ETU2 passe avant ETU10).
+    """
+    texte = normaliser_texte(etudiant[champ])
+    morceaux = re.split(r"(\d+)", texte)          # alterne texte / nombre
+    cle = []
+    for position, morceau in enumerate(morceaux):
+        if position % 2 == 1:                     # positions impaires = chiffres
+            cle.append(int(morceau))
+        else:
+            cle.append(morceau)
+    return cle
+
+
+def comparer(a, b, champ, ordre):
+    """
+    Compare deux étudiants : retourne -1 (a avant b), 0 (équivalents)
+    ou 1 (a après b). L'ordre décroissant inverse le résultat.
+    """
+    cle_a = cle_de_tri(a, champ)
+    cle_b = cle_de_tri(b, champ)
+    if cle_a < cle_b:
+        resultat = -1
+    elif cle_a > cle_b:
+        resultat = 1
+    else:
+        resultat = 0
+    return -resultat if ordre == "desc" else resultat
+
+
+def tri_rapide(liste, champ, ordre):
+    """
+    TRI RAPIDE (Quick Sort) : pivot au milieu, partition en trois groupes
+    (plus petits, égaux, plus grands), puis tri récursif des deux extrêmes.
+    Retourne une NOUVELLE liste triée.
+    """
+    if len(liste) <= 1:
+        return liste[:]
+    pivot = liste[len(liste) // 2]
+    plus_petits = []
+    egaux = []
+    plus_grands = []
+    for element in liste:
+        c = comparer(element, pivot, champ, ordre)
+        if c < 0:
+            plus_petits.append(element)
+        elif c > 0:
+            plus_grands.append(element)
+        else:
+            egaux.append(element)
+    return (tri_rapide(plus_petits, champ, ordre)
+            + egaux
+            + tri_rapide(plus_grands, champ, ordre))
+
+
+def fusionner(gauche, droite, champ, ordre):
+    """Fusionne deux listes déjà triées en une seule liste triée."""
+    resultat = []
+    i = 0
+    j = 0
+    while i < len(gauche) and j < len(droite):
+        if comparer(gauche[i], droite[j], champ, ordre) <= 0:
+            resultat.append(gauche[i])
+            i += 1
+        else:
+            resultat.append(droite[j])
+            j += 1
+    while i < len(gauche):
+        resultat.append(gauche[i])
+        i += 1
+    while j < len(droite):
+        resultat.append(droite[j])
+        j += 1
+    return resultat
+
+
+def tri_fusion(liste, champ, ordre):
+    """
+    TRI FUSION (Merge Sort) : coupe la liste en deux, trie chaque moitié
+    récursivement, puis fusionne. Tri stable. Retourne une NOUVELLE liste.
+    """
+    if len(liste) <= 1:
+        return liste[:]
+    milieu = len(liste) // 2
+    gauche = tri_fusion(liste[:milieu], champ, ordre)
+    droite = tri_fusion(liste[milieu:], champ, ordre)
+    return fusionner(gauche, droite, champ, ordre)
+
+
+def trier_etudiants(liste, algorithme, champ, ordre):
+    """Applique l'algorithme choisi ("rapide" ou "fusion") sur la liste."""
+    if algorithme == "fusion":
+        return tri_fusion(liste, champ, ordre)
+    return tri_rapide(liste, champ, ordre)
+
+
+def lire_parametres_tri():
+    """
+    Lit les options de tri dans l'adresse (?algorithme=...&champ=...&ordre=...).
+    Retourne (algorithme, champ, ordre, erreurs).
+    """
+    algorithme = request.args.get("algorithme", "rapide")
+    champ = request.args.get("champ", "matricule")
+    ordre = request.args.get("ordre", "asc")
+    erreurs = []
+    if algorithme not in ALGORITHMES_VALIDES:
+        erreurs.append("Algorithme de tri invalide.")
+    if champ not in CHAMPS_TRI_VALIDES:
+        erreurs.append("Champ de tri invalide.")
+    if ordre not in ORDRES_VALIDES:
+        erreurs.append("Ordre de tri invalide.")
+    return algorithme, champ, ordre, erreurs
+
+
+# ============================================================
+# 6. DATES, EXPORT PDF ET IMPRESSION
+# ============================================================
+def date_lisible():
+    """Date du jour en français, par exemple « 3 novembre 2026 »."""
+    maintenant = datetime.now()
+    return (str(maintenant.day) + " " + MOIS_FR[maintenant.month - 1]
+            + " " + str(maintenant.year))
+
+
+def date_iso():
+    """Date du jour au format AAAA-MM-JJ (pour le nom du fichier PDF)."""
+    return datetime.now().strftime("%Y-%m-%d")
+
+
+def generer_pdf(etudiants):
+    """
+    Construit le PDF de la liste (déjà triée) et le retourne dans un
+    tampon mémoire : titre, date, en-tête du tableau et toutes les lignes.
+    """
+    tampon = io.BytesIO()
+    document = SimpleDocTemplate(tampon, pagesize=A4,
+                                 title="Liste des étudiants",
+                                 leftMargin=40, rightMargin=40,
+                                 topMargin=40, bottomMargin=40)
+    styles = getSampleStyleSheet()
+    elements = [
+        Paragraph("Liste des étudiants", styles["Title"]),
+        Paragraph("Généré le " + date_lisible(), styles["Normal"]),
+        Spacer(1, 16),
+    ]
+
+    donnees = [["Matricule", "Nom", "Prénom", "Niveau"]]
+    for etudiant in etudiants:
+        donnees.append([etudiant["matricule"], etudiant["nom"],
+                        etudiant["prenom"], etudiant["niveau"]])
+
+    tableau = Table(donnees, repeatRows=1, colWidths=[110, 170, 170, 65])
+    tableau.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1B2A41")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#999999")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1),
+         [colors.white, colors.HexColor("#F1F4F8")]),
+        ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    elements.append(tableau)
+
+    document.build(elements)
+    tampon.seek(0)
+    return tampon
+
+
+# ============================================================
+# 7. ROUTES FLASK (elles appellent les fonctions ci-dessus)
 # ============================================================
 @app.route("/")
 def page_accueil():
@@ -177,8 +382,12 @@ def page_accueil():
 
 @app.route("/api/etudiants", methods=["GET"])
 def route_lister():
+    algorithme, champ, ordre, erreurs = lire_parametres_tri()
+    if erreurs:
+        return reponse_erreur(" ".join(erreurs), 400)
     try:
-        return jsonify({"succes": True, "etudiants": lister_etudiants()})
+        liste = trier_etudiants(lister_etudiants(), algorithme, champ, ordre)
+        return jsonify({"succes": True, "etudiants": liste})
     except Error as erreur:
         return reponse_erreur_mysql(erreur)
 
@@ -226,8 +435,41 @@ def route_supprimer(matricule):
         return reponse_erreur_mysql(erreur)
 
 
+@app.route("/api/etudiants/pdf", methods=["GET"])
+def route_pdf():
+    """Télécharge la liste triée au format PDF."""
+    algorithme, champ, ordre, erreurs = lire_parametres_tri()
+    if erreurs:
+        return reponse_erreur(" ".join(erreurs), 400)
+    try:
+        liste = trier_etudiants(lister_etudiants(), algorithme, champ, ordre)
+    except Error as erreur:
+        return reponse_erreur_mysql(erreur)
+    if not liste:
+        return reponse_erreur("Aucun étudiant à exporter.", 400)
+    return send_file(generer_pdf(liste), mimetype="application/pdf",
+                     as_attachment=True,
+                     download_name="liste_etudiants_" + date_iso() + ".pdf")
+
+
+@app.route("/imprimer", methods=["GET"])
+def route_imprimer():
+    """Page d'impression : titre, date et tableau trié (la boîte d'impression s'ouvre seule)."""
+    algorithme, champ, ordre, erreurs = lire_parametres_tri()
+    if erreurs:
+        return " ".join(erreurs), 400
+    try:
+        liste = trier_etudiants(lister_etudiants(), algorithme, champ, ordre)
+    except Error as erreur:
+        return "Erreur de base de données : " + str(erreur), 503
+    if not liste:
+        return "Aucun étudiant à imprimer.", 400
+    return render_template("impression.html", etudiants=liste,
+                           date=date_lisible())
+
+
 # ============================================================
-# 6. POINT D'ENTRÉE
+# 8. POINT D'ENTRÉE
 # ============================================================
 if __name__ == "__main__":
     app.run(debug=True, host="127.0.0.1", port=5000)

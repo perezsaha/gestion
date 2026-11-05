@@ -1,0 +1,17 @@
+/* Styles de la page d'impression (écran + @media print) */
+body { font-family: "IBM Plex Sans", "Segoe UI", Arial, sans-serif; color: #1b2a41; margin: 2rem; }
+h1 { margin: 0; font-size: 1.6rem; }
+.date { margin: 0.3rem 0 1.2rem; color: #444; }
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.6rem 0.8rem; border: 1px solid #999; }
+th { background: #1b2a41; color: #fff; }
+.barre-ecran { margin-bottom: 1.5rem; display: flex; gap: 0.6rem; }
+.barre-ecran button { font: inherit; padding: 0.5rem 1rem; cursor: pointer; }
+
+@media print {
+    body { margin: 0; }
+    .barre-ecran { display: none; }                 /* masque les boutons */
+    th { background: #e5e5e5 !important; color: #000 !important;
+         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    tr { page-break-inside: avoid; }
+}

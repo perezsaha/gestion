@@ -174,9 +174,6 @@ td.colonne-actions, th.colonne-actions { text-align: right; white-space: nowrap;
 .dialogue::backdrop { background: rgba(27, 42, 65, 0.45); }
 .dialogue h3 { margin: 0 0 0.5rem; }
 
-/* ---------- Éléments visibles uniquement à l'impression ---------- */
-.entete-impression { display: none; }
-
 /* ---------- Responsive ---------- */
 @media (max-width: 860px) {
     .mise-en-page { grid-template-columns: 1fr; }
@@ -188,33 +185,3 @@ td.colonne-actions, th.colonne-actions { text-align: right; white-space: nowrap;
     * { transition: none !important; }
 }
 
-/* ============================================================
-   IMPRESSION : on ne garde que le titre, la date et le tableau
-   ============================================================ */
-@media print {
-    body { background: #fff; }
-
-    /* Masquer boutons, formulaire, menus, messages, en-tête de la page */
-    .entete,
-    .messages,
-    .panneau-formulaire,
-    .barre-liste,
-    .barre-tri,
-    .dialogue,
-    .colonne-actions,
-    .message-vide { display: none !important; }
-
-    .mise-en-page { display: block; padding: 0; max-width: none; }
-    .panneau { border: none; padding: 0; }
-
-    /* Titre et date d'impression */
-    .entete-impression { display: block; margin-bottom: 1rem; }
-    .entete-impression h1 { margin: 0; font-size: 1.5rem; }
-    .entete-impression p { margin: 0.2rem 0 0; color: #333; }
-
-    table { font-size: 11pt; }
-    th { background: #e5e5e5 !important; color: #000 !important;
-         -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    th, td { border: 1px solid #999; }
-    tr { page-break-inside: avoid; }
-}

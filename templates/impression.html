@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Liste des étudiants</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='impression.css') }}">
+</head>
+<!-- La boîte de dialogue d'impression s'ouvre dès que la page est chargée -->
+<body onload="window.print()">
+
+    <!-- Boutons visibles à l'écran seulement (masqués à l'impression) -->
+    <div class="barre-ecran">
+        <button type="button" onclick="window.print()">Imprimer</button>
+        <button type="button" onclick="window.close()">Fermer</button>
+    </div>
+
+    <h1>Liste des étudiants</h1>
+    <p class="date">Généré le {{ date }}</p>
+
+    <table>
+        <thead>
+            <tr><th>Matricule</th><th>Nom</th><th>Prénom</th><th>Niveau</th></tr>
+        </thead>
+        <tbody>
+            {% for e in etudiants %}
+            <tr>
+                <td>{{ e.matricule }}</td>
+                <td>{{ e.nom }}</td>
+                <td>{{ e.prenom }}</td>
+                <td>{{ e.niveau }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>
